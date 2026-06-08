@@ -252,11 +252,40 @@ class SPC_KB_Sync {
 	 */
 	private function extract_clean_text( WP_Post $page ) {
 		$content = apply_filters( 'the_content', $page->post_content );
+		$content = $this->preserve_links_in_content( $content );
 		$content = wp_strip_all_tags( $content, true );
 		$content = html_entity_decode( $content, ENT_QUOTES | ENT_HTML5, get_bloginfo( 'charset' ) );
 		$content = preg_replace( '/\s+/u', ' ', $content );
 
 		return trim( $content );
+	}
+
+	/**
+	 * Preserve useful anchor URLs before stripping HTML.
+	 *
+	 * @param string $content Rendered HTML content.
+	 *
+	 * @return string
+	 */
+	private function preserve_links_in_content( $content ) {
+		return preg_replace_callback(
+			'/<a\s+[^>]*href=["\']([^"\']+)["\'][^>]*>(.*?)<\/a>/is',
+			function ( $matches ) {
+				$url  = esc_url_raw( html_entity_decode( $matches[1], ENT_QUOTES | ENT_HTML5, get_bloginfo( 'charset' ) ) );
+				$text = trim( wp_strip_all_tags( $matches[2], true ) );
+
+				if ( '' === $url ) {
+					return $text;
+				}
+
+				if ( '' === $text ) {
+					return $url;
+				}
+
+				return $text . ' (' . $url . ')';
+			},
+			$content
+		);
 	}
 
 	/**

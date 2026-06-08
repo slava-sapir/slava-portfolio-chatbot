@@ -35,6 +35,13 @@ class SPC_Lead_Controller {
 	private $rate_limiter;
 
 	/**
+	 * Analytics helper.
+	 *
+	 * @var SPC_Analytics
+	 */
+	private $analytics;
+
+	/**
 	 * Constructor.
 	 *
 	 * @param SPC_Settings $settings Settings manager.
@@ -43,6 +50,7 @@ class SPC_Lead_Controller {
 		$this->settings     = $settings;
 		$this->logger       = new SPC_Logger();
 		$this->rate_limiter = new SPC_Rate_Limiter();
+		$this->analytics    = new SPC_Analytics();
 	}
 
 	/**
@@ -138,6 +146,17 @@ class SPC_Lead_Controller {
 				'message_text'    => 'Lead captured.',
 				'source_page'     => $source_page,
 				'lead_captured'   => true,
+				'session_hash'    => $this->rate_limiter->get_session_hash(),
+			)
+		);
+
+		$this->analytics->track_event(
+			'lead_captured',
+			array(
+				'conversation_id' => $conversation_id,
+				'visitor_type'    => $visitor_type,
+				'interest_area'   => $interest_area,
+				'source_page'     => $source_page,
 				'session_hash'    => $this->rate_limiter->get_session_hash(),
 			)
 		);

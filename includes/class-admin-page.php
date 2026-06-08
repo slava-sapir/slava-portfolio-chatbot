@@ -58,7 +58,7 @@ class SPC_Admin_Page {
 
 		$active_tab = isset( $_GET['tab'] ) ? sanitize_key( wp_unslash( $_GET['tab'] ) ) : 'settings';
 
-		if ( ! in_array( $active_tab, array( 'settings', 'leads' ), true ) ) {
+		if ( ! in_array( $active_tab, array( 'settings', 'leads', 'analytics' ), true ) ) {
 			$active_tab = 'settings';
 		}
 
@@ -73,11 +73,16 @@ class SPC_Admin_Page {
 				<a class="nav-tab <?php echo 'leads' === $active_tab ? 'nav-tab-active' : ''; ?>" href="<?php echo esc_url( admin_url( 'admin.php?page=slava-portfolio-chatbot&tab=leads' ) ); ?>">
 					<?php esc_html_e( 'Leads', 'slava-portfolio-chatbot' ); ?>
 				</a>
+				<a class="nav-tab <?php echo 'analytics' === $active_tab ? 'nav-tab-active' : ''; ?>" href="<?php echo esc_url( admin_url( 'admin.php?page=slava-portfolio-chatbot&tab=analytics' ) ); ?>">
+					<?php esc_html_e( 'Analytics', 'slava-portfolio-chatbot' ); ?>
+				</a>
 			</nav>
 
 			<?php
 			if ( 'leads' === $active_tab ) {
 				$this->render_leads_tab();
+			} elseif ( 'analytics' === $active_tab ) {
+				$this->render_analytics_tab();
 			} else {
 				$this->render_settings_tab();
 			}
@@ -405,6 +410,99 @@ class SPC_Admin_Page {
 				</tbody>
 			</table>
 		<?php endif; ?>
+		<?php
+	}
+
+	/**
+	 * Render analytics tab.
+	 *
+	 * @return void
+	 */
+	private function render_analytics_tab() {
+		$analytics = new SPC_Analytics();
+		$summary   = $analytics->get_summary();
+		$interests = $analytics->get_top_interest_areas();
+		$events    = $analytics->get_recent_events();
+		?>
+		<h2><?php esc_html_e( 'Chatbot Analytics', 'slava-portfolio-chatbot' ); ?></h2>
+		<p><?php esc_html_e( 'Lightweight MVP analytics for chatbot usage, fallbacks, and lead conversion.', 'slava-portfolio-chatbot' ); ?></p>
+
+		<div class="spc-analytics-cards">
+			<div class="spc-analytics-card">
+				<strong><?php echo esc_html( $summary['questions'] ); ?></strong>
+				<span><?php esc_html_e( 'Questions Asked', 'slava-portfolio-chatbot' ); ?></span>
+			</div>
+			<div class="spc-analytics-card">
+				<strong><?php echo esc_html( $summary['leads'] ); ?></strong>
+				<span><?php esc_html_e( 'Leads Captured', 'slava-portfolio-chatbot' ); ?></span>
+			</div>
+			<div class="spc-analytics-card">
+				<strong><?php echo esc_html( $summary['fallbacks'] ); ?></strong>
+				<span><?php esc_html_e( 'Fallbacks', 'slava-portfolio-chatbot' ); ?></span>
+			</div>
+			<div class="spc-analytics-card">
+				<strong><?php echo esc_html( $summary['fallback_rate'] ); ?>%</strong>
+				<span><?php esc_html_e( 'Fallback Rate', 'slava-portfolio-chatbot' ); ?></span>
+			</div>
+			<div class="spc-analytics-card">
+				<strong><?php echo esc_html( $summary['lead_rate'] ); ?>%</strong>
+				<span><?php esc_html_e( 'Question-to-Lead Rate', 'slava-portfolio-chatbot' ); ?></span>
+			</div>
+		</div>
+
+		<div class="spc-analytics-grid">
+			<section>
+				<h3><?php esc_html_e( 'Top Interest Areas', 'slava-portfolio-chatbot' ); ?></h3>
+				<?php if ( empty( $interests ) ) : ?>
+					<p><?php esc_html_e( 'No interest area data yet.', 'slava-portfolio-chatbot' ); ?></p>
+				<?php else : ?>
+					<table class="widefat striped">
+						<thead>
+							<tr>
+								<th><?php esc_html_e( 'Interest Area', 'slava-portfolio-chatbot' ); ?></th>
+								<th><?php esc_html_e( 'Events', 'slava-portfolio-chatbot' ); ?></th>
+							</tr>
+						</thead>
+						<tbody>
+							<?php foreach ( $interests as $interest ) : ?>
+								<tr>
+									<td><?php echo esc_html( $interest->interest_area ); ?></td>
+									<td><?php echo esc_html( $interest->total ); ?></td>
+								</tr>
+							<?php endforeach; ?>
+						</tbody>
+					</table>
+				<?php endif; ?>
+			</section>
+
+			<section>
+				<h3><?php esc_html_e( 'Recent Events', 'slava-portfolio-chatbot' ); ?></h3>
+				<?php if ( empty( $events ) ) : ?>
+					<p><?php esc_html_e( 'No analytics events recorded yet.', 'slava-portfolio-chatbot' ); ?></p>
+				<?php else : ?>
+					<table class="widefat striped">
+						<thead>
+							<tr>
+								<th><?php esc_html_e( 'Date', 'slava-portfolio-chatbot' ); ?></th>
+								<th><?php esc_html_e( 'Event', 'slava-portfolio-chatbot' ); ?></th>
+								<th><?php esc_html_e( 'Interest', 'slava-portfolio-chatbot' ); ?></th>
+								<th><?php esc_html_e( 'Fallback', 'slava-portfolio-chatbot' ); ?></th>
+							</tr>
+						</thead>
+						<tbody>
+							<?php foreach ( $events as $event ) : ?>
+								<tr>
+									<td><?php echo esc_html( mysql2date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), $event->created_at ) ); ?></td>
+									<td><?php echo esc_html( $event->event_type ); ?></td>
+									<td><?php echo esc_html( $event->interest_area ); ?></td>
+									<td><?php echo $event->is_fallback ? esc_html__( 'Yes', 'slava-portfolio-chatbot' ) : esc_html__( 'No', 'slava-portfolio-chatbot' ); ?></td>
+								</tr>
+							<?php endforeach; ?>
+						</tbody>
+					</table>
+				<?php endif; ?>
+			</section>
+		</div>
 		<?php
 	}
 

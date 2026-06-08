@@ -198,11 +198,32 @@
 	color: #172033;
 }
 
+.spc-chatbot__message--assistant a,
+.spc-chatbot__message--error a {
+	color: #155bc3;
+	font-weight: 700;
+	text-decoration: underline;
+}
+
+.spc-chatbot__message--assistant a:hover,
+.spc-chatbot__message--assistant a:focus-visible,
+.spc-chatbot__message--error a:hover,
+.spc-chatbot__message--error a:focus-visible {
+	color: #0f3f8c;
+	outline: none;
+}
+
 .spc-chatbot__message--user {
 	align-self: flex-end;
 	margin-left: auto;
 	background: #1f6feb;
 	color: #fff;
+}
+
+.spc-chatbot__message--user a {
+	color: #fff;
+	font-weight: 700;
+	text-decoration: underline;
 }
 
 .spc-chatbot__message--error {

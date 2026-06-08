@@ -60,11 +60,46 @@
 	function appendMessage( text, type ) {
 		var message = document.createElement( 'div' );
 		message.className = 'spc-chatbot__message spc-chatbot__message--' + type;
-		message.textContent = text;
+
+		if ( type.indexOf( 'assistant' ) === 0 ) {
+			appendTextWithLinks( message, text );
+		} else {
+			message.textContent = text;
+		}
+
 		messages.appendChild( message );
 		messages.scrollTop = messages.scrollHeight;
 
 		return message;
+	}
+
+	function appendTextWithLinks( element, text ) {
+		var pattern = /(https?:\/\/[^\s)]+)([).,!?;:]*)/g;
+		var lastIndex = 0;
+		var match;
+
+		while ( ( match = pattern.exec( text ) ) !== null ) {
+			if ( match.index > lastIndex ) {
+				element.appendChild( document.createTextNode( text.slice( lastIndex, match.index ) ) );
+			}
+
+			var link = document.createElement( 'a' );
+			link.href = match[1];
+			link.textContent = match[1];
+			link.target = '_blank';
+			link.rel = 'noopener noreferrer';
+			element.appendChild( link );
+
+			if ( match[2] ) {
+				element.appendChild( document.createTextNode( match[2] ) );
+			}
+
+			lastIndex = pattern.lastIndex;
+		}
+
+		if ( lastIndex < text.length ) {
+			element.appendChild( document.createTextNode( text.slice( lastIndex ) ) );
+		}
 	}
 
 	function setQuickReplies( replies ) {
@@ -102,7 +137,7 @@
 			: 'Sources';
 		links.appendChild( title );
 
-		suggestedLinks.forEach( function ( item ) {
+		( suggestedLinks || [] ).forEach( function ( item ) {
 			if ( ! item || ! item.url ) {
 				return;
 			}

@@ -98,3 +98,42 @@
 .spc-conversation-log__item p {
 	margin: 6px 0 0;
 }
+
+.spc-analytics-cards {
+	display: grid;
+	grid-template-columns: repeat(5, minmax(140px, 1fr));
+	gap: 12px;
+	margin: 18px 0;
+}
+
+.spc-analytics-card {
+	padding: 16px;
+	border: 1px solid #dcdcde;
+	background: #fff;
+}
+
+.spc-analytics-card strong {
+	display: block;
+	font-size: 28px;
+	line-height: 1.1;
+	color: #1d2327;
+}
+
+.spc-analytics-card span {
+	display: block;
+	margin-top: 6px;
+	color: #646970;
+}
+
+.spc-analytics-grid {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+	gap: 18px;
+}
+
+@media (max-width: 960px) {
+	.spc-analytics-cards,
+	.spc-analytics-grid {
+		grid-template-columns: 1fr;
+	}
+}

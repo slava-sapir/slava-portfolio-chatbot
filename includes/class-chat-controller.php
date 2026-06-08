@@ -56,6 +56,13 @@ class SPC_Chat_Controller {
 	private $rate_limiter;
 
 	/**
+	 * Analytics helper.
+	 *
+	 * @var SPC_Analytics
+	 */
+	private $analytics;
+
+	/**
 	 * Constructor.
 	 *
 	 * @param SPC_Settings $settings Settings manager.
@@ -67,6 +74,7 @@ class SPC_Chat_Controller {
 		$this->guardrails   = new SPC_Guardrails();
 		$this->logger       = new SPC_Logger();
 		$this->rate_limiter = new SPC_Rate_Limiter();
+		$this->analytics    = new SPC_Analytics();
 	}
 
 	/**
@@ -150,24 +158,43 @@ class SPC_Chat_Controller {
 			)
 		);
 
-		$embedding = $this->openai->create_embedding( $message );
+		$this->analytics->track_event(
+			'chat_question',
+			array(
+				'conversation_id' => $conversation_id,
+				'language'        => $language,
+				'visitor_type'    => $visitor_type,
+				'interest_area'   => $interest_area,
+				'source_page'     => $source_page,
+				'session_hash'    => $session_hash,
+			)
+		);
+
+		$is_project_query = $this->is_project_query( $message );
+		$retrieval_query  = $is_project_query
+			? 'Portfolio projects case studies selected work examples project names project descriptions. ' . $message
+			: $message;
+
+		$embedding = $this->openai->create_embedding( $retrieval_query );
 
 		if ( ! $embedding['success'] ) {
 			return $this->error_response( $embedding, 502 );
 		}
 
-		$matches = $this->supabase->similarity_search( $embedding['data']['embedding'], 5, 0.2, $language );
+		$matches = $this->supabase->similarity_search( $embedding['data']['embedding'], 8, 0.2, $language );
 
 		if ( ! $matches['success'] ) {
 			return $this->error_response( $matches, 502 );
 		}
 
-		$chunks         = is_array( $matches['data'] ) ? $matches['data'] : array();
+		$chunks         = is_array( $matches['data'] ) ? $this->prioritize_chunks_for_intent( $matches['data'], $message ) : array();
+		$chunks         = $is_project_query ? $this->prefer_project_chunks( $chunks ) : $chunks;
 		$retrieval_evaluation = $this->guardrails->evaluate_retrieval( $chunks, $message );
 		$weak_retrieval       = $retrieval_evaluation['is_weak'];
 		$chunk_ids      = wp_list_pluck( $chunks, 'chunk_id' );
 		$suggested_links = $this->get_suggested_links( $chunks );
 		$source_labels   = $this->get_source_labels( $chunks );
+		$source_snippets = $this->get_source_snippets( $chunks, $message );
 		$show_lead_form  = $this->should_show_lead_form( $message );
 
 		if ( $show_lead_form ) {
@@ -186,6 +213,20 @@ class SPC_Chat_Controller {
 				)
 			);
 
+			$this->analytics->track_event(
+				'chat_answer',
+				array(
+					'conversation_id' => $conversation_id,
+					'language'        => $language,
+					'visitor_type'    => $visitor_type,
+					'interest_area'   => $interest_area,
+					'source_page'     => $source_page,
+					'is_fallback'     => $weak_retrieval,
+					'metadata'        => array( 'lead_form_shown' => true ),
+					'session_hash'    => $session_hash,
+				)
+			);
+
 			return rest_ensure_response(
 				array(
 					'conversation_id'   => $conversation_id,
@@ -193,6 +234,7 @@ class SPC_Chat_Controller {
 					'quick_replies'     => $this->get_quick_replies( true ),
 					'suggested_links'   => $suggested_links,
 					'source_labels'     => $source_labels,
+					'source_snippets'   => $source_snippets,
 					'show_lead_form'    => true,
 					'weak_retrieval'    => $weak_retrieval,
 				)
@@ -215,6 +257,20 @@ class SPC_Chat_Controller {
 				)
 			);
 
+			$this->analytics->track_event(
+				'fallback',
+				array(
+					'conversation_id' => $conversation_id,
+					'language'        => $language,
+					'visitor_type'    => $visitor_type,
+					'interest_area'   => $interest_area,
+					'source_page'     => $source_page,
+					'is_fallback'     => true,
+					'metadata'        => array( 'reason' => $retrieval_evaluation['reason'] ),
+					'session_hash'    => $session_hash,
+				)
+			);
+
 			return rest_ensure_response(
 				array(
 					'conversation_id'    => $conversation_id,
@@ -222,6 +278,7 @@ class SPC_Chat_Controller {
 					'quick_replies'      => $this->get_quick_replies( $show_lead_form ),
 					'suggested_links'    => $suggested_links,
 					'source_labels'      => $source_labels,
+					'source_snippets'    => $source_snippets,
 					'show_lead_form'     => $show_lead_form,
 					'weak_retrieval'     => true,
 					'fallback_reason'    => $retrieval_evaluation['reason'],
@@ -253,6 +310,19 @@ class SPC_Chat_Controller {
 			)
 		);
 
+		$this->analytics->track_event(
+			'chat_answer',
+			array(
+				'conversation_id' => $conversation_id,
+				'language'        => $language,
+				'visitor_type'    => $visitor_type,
+				'interest_area'   => $interest_area,
+				'source_page'     => $source_page,
+				'is_fallback'     => false,
+				'session_hash'    => $session_hash,
+			)
+		);
+
 		return rest_ensure_response(
 			array(
 				'conversation_id'   => $conversation_id,
@@ -260,6 +330,7 @@ class SPC_Chat_Controller {
 				'quick_replies'     => $this->get_quick_replies( $show_lead_form ),
 				'suggested_links'   => $suggested_links,
 				'source_labels'     => $source_labels,
+				'source_snippets'   => $source_snippets,
 				'show_lead_form'    => $show_lead_form,
 				'weak_retrieval'    => false,
 			)
@@ -295,7 +366,7 @@ class SPC_Chat_Controller {
 		return array(
 			array(
 				'role'    => 'system',
-				'content' => $system_prompt,
+				'content' => $system_prompt . "\n\nProject-answer guidance:\n- When the user asks for projects, examples, portfolio work, or case studies, include relevant project links if the retrieved context contains URLs.\n- Put each project URL next to the project name or in the same bullet.\n- Do not invent project URLs. If only a portfolio page or GitHub link is available, use that instead.",
 			),
 			array(
 				'role'    => 'user',
@@ -348,6 +419,164 @@ class SPC_Chat_Controller {
 		}
 
 		return array_values( array_unique( $labels ) );
+	}
+
+	/**
+	 * Build short source snippets from retrieved chunks.
+	 *
+	 * @param array $chunks Retrieved chunks.
+	 *
+	 * @return array
+	 */
+	private function get_source_snippets( array $chunks, $message ) {
+		$snippets = array();
+
+		foreach ( $chunks as $chunk ) {
+			$url     = isset( $chunk['page_url'] ) ? esc_url_raw( $chunk['page_url'] ) : '';
+			$title   = isset( $chunk['page_title'] ) ? sanitize_text_field( $chunk['page_title'] ) : '';
+			$content = isset( $chunk['content'] ) ? $this->make_snippet( $chunk['content'], $message ) : '';
+
+			if ( '' === $url || '' === $content || isset( $snippets[ $url ] ) ) {
+				continue;
+			}
+
+			$snippets[ $url ] = array(
+				'title'      => $title,
+				'url'        => $url,
+				'snippet'    => $content,
+				'similarity' => isset( $chunk['similarity'] ) ? round( (float) $chunk['similarity'], 3 ) : null,
+			);
+
+			if ( count( $snippets ) >= 3 ) {
+				break;
+			}
+		}
+
+		return array_values( $snippets );
+	}
+
+	/**
+	 * Trim chunk content into a compact citation snippet.
+	 *
+	 * @param string $content Chunk content.
+	 *
+	 * @return string
+	 */
+	private function make_snippet( $content, $message = '' ) {
+		$content = trim( preg_replace( '/\s+/u', ' ', wp_strip_all_tags( (string) $content ) ) );
+
+		if ( strlen( $content ) <= 220 ) {
+			return $content;
+		}
+
+		$position = $this->find_best_snippet_position( $content, $message );
+
+		if ( $position > 0 ) {
+			$start   = max( 0, $position - 80 );
+			$snippet = substr( $content, $start, 240 );
+			$prefix  = $start > 0 ? '...' : '';
+			$suffix  = ( $start + strlen( $snippet ) ) < strlen( $content ) ? '...' : '';
+
+			return $prefix . rtrim( trim( $snippet ), " \t\n\r\0\x0B.,;:" ) . $suffix;
+		}
+
+		return rtrim( substr( $content, 0, 220 ), " \t\n\r\0\x0B.,;:" ) . '...';
+	}
+
+	/**
+	 * Prioritize retrieved chunks for obvious user intents.
+	 *
+	 * @param array  $chunks  Retrieved chunks.
+	 * @param string $message User message.
+	 *
+	 * @return array
+	 */
+	private function prioritize_chunks_for_intent( array $chunks, $message ) {
+		if ( ! $this->is_project_query( $message ) ) {
+			return $chunks;
+		}
+
+		$project_chunks = array();
+		$other_chunks   = array();
+
+		foreach ( $chunks as $chunk ) {
+			$title = isset( $chunk['page_title'] ) ? strtolower( (string) $chunk['page_title'] ) : '';
+			$url   = isset( $chunk['page_url'] ) ? strtolower( (string) $chunk['page_url'] ) : '';
+
+			if ( preg_match( '/portfolio|project|projects|work/i', $title . ' ' . $url ) ) {
+				$project_chunks[] = $chunk;
+			} else {
+				$other_chunks[] = $chunk;
+			}
+		}
+
+		return ! empty( $project_chunks ) ? array_merge( $project_chunks, $other_chunks ) : $chunks;
+	}
+
+	/**
+	 * For project queries, use project/portfolio chunks only when available.
+	 *
+	 * @param array $chunks Retrieved chunks.
+	 *
+	 * @return array
+	 */
+	private function prefer_project_chunks( array $chunks ) {
+		$project_chunks = array();
+
+		foreach ( $chunks as $chunk ) {
+			$title   = isset( $chunk['page_title'] ) ? strtolower( (string) $chunk['page_title'] ) : '';
+			$url     = isset( $chunk['page_url'] ) ? strtolower( (string) $chunk['page_url'] ) : '';
+			$content = isset( $chunk['content'] ) ? strtolower( (string) $chunk['content'] ) : '';
+
+			if ( preg_match( '/portfolio|project|projects|case stud|selected work|work samples/i', $title . ' ' . $url . ' ' . $content ) ) {
+				$project_chunks[] = $chunk;
+			}
+		}
+
+		return ! empty( $project_chunks ) ? $project_chunks : $chunks;
+	}
+
+	/**
+	 * Is this a project/portfolio query?
+	 *
+	 * @param string $message User message.
+	 *
+	 * @return bool
+	 */
+	private function is_project_query( $message ) {
+		return (bool) preg_match( '/\b(project|projects|portfolio|case stud|examples|work samples|show.*work|show.*project)\b/i', (string) $message );
+	}
+
+	/**
+	 * Find the best snippet starting point based on user query terms.
+	 *
+	 * @param string $content Chunk content.
+	 * @param string $message User message.
+	 *
+	 * @return int
+	 */
+	private function find_best_snippet_position( $content, $message ) {
+		$terms = preg_split( '/[^a-z0-9]+/i', strtolower( (string) $message ) );
+		$terms = array_values(
+			array_filter(
+				$terms,
+				function ( $term ) {
+					$stopwords = array( 'show', 'tell', 'about', 'what', 'can', 'does', 'the', 'and', 'for', 'with', 'slava', 'relevant' );
+
+					return strlen( $term ) >= 4 && ! in_array( $term, $stopwords, true );
+				}
+			)
+		);
+
+		foreach ( $terms as $term ) {
+			$position = stripos( $content, $term );
+
+			if ( false !== $position ) {
+				return (int) $position;
+			}
+		}
+
+		return 0;
 	}
 
 	/**

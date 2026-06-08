@@ -21,6 +21,7 @@ require_once SPC_PLUGIN_DIR . 'includes/class-logger.php';
 require_once SPC_PLUGIN_DIR . 'includes/class-guardrails.php';
 require_once SPC_PLUGIN_DIR . 'includes/class-rate-limiter.php';
 require_once SPC_PLUGIN_DIR . 'includes/class-privacy.php';
+require_once SPC_PLUGIN_DIR . 'includes/class-analytics.php';
 
 /**
  * Coordinates plugin services and WordPress hooks.
