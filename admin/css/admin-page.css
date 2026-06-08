@@ -1,0 +1,100 @@
+.spc-admin-page {
+	max-width: 960px;
+}
+
+.spc-admin-page .form-table {
+	margin-top: 16px;
+}
+
+.spc-admin-tabs {
+	margin-top: 16px;
+	margin-bottom: 20px;
+}
+
+.spc-page-list {
+	display: grid;
+	gap: 8px;
+	max-height: 260px;
+	max-width: 520px;
+	overflow: auto;
+	padding: 12px;
+	border: 1px solid #dcdcde;
+	background: #fff;
+}
+
+.spc-page-list label {
+	display: block;
+}
+
+.spc-leads-table {
+	margin-top: 16px;
+}
+
+.spc-leads-table td,
+.spc-leads-table th {
+	vertical-align: top;
+}
+
+.spc-leads-table code {
+	white-space: normal;
+	word-break: break-word;
+}
+
+.spc-leads-actions {
+	margin: 12px 0;
+}
+
+.spc-lead-row-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+}
+
+.spc-lead-row-actions form {
+	margin: 0;
+}
+
+.spc-lead-detail {
+	margin: 18px 0;
+	padding: 16px;
+	border: 1px solid #dcdcde;
+	background: #fff;
+}
+
+.spc-lead-detail dl {
+	display: grid;
+	grid-template-columns: 140px minmax(0, 1fr);
+	gap: 8px 16px;
+	max-width: 900px;
+}
+
+.spc-lead-detail dt {
+	font-weight: 700;
+}
+
+.spc-lead-detail dd {
+	margin: 0;
+}
+
+.spc-conversation-log {
+	display: grid;
+	gap: 10px;
+	max-width: 900px;
+}
+
+.spc-conversation-log__item {
+	padding: 10px 12px;
+	border: 1px solid #e0e4ea;
+	background: #f8fafc;
+}
+
+.spc-conversation-log__item span {
+	display: inline-block;
+	margin-left: 8px;
+	color: #646970;
+	font-size: 12px;
+}
+
+.spc-conversation-log__item p {
+	margin: 6px 0 0;
+}

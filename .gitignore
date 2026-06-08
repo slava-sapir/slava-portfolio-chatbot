@@ -1,0 +1,24 @@
+.DS_Store
+Thumbs.db
+
+# Local editor files
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Logs and local exports
+*.log
+*.csv
+
+# Dependencies/build output if added later
+node_modules/
+vendor/
+dist/
+build/
+
+# Environment/secrets
+.env
+.env.*
+*.pem
+*.key
