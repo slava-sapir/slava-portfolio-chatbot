@@ -207,6 +207,7 @@ class SPC_Chat_Controller {
 		$suggested_links = $this->get_suggested_links( $chunks );
 		$source_labels   = $this->get_source_labels( $chunks );
 		$source_snippets = $this->get_source_snippets( $chunks, $message );
+		$allowed_link_domains = $this->get_allowed_link_domains_for_chunks( $chunks );
 		$show_lead_form  = $this->should_show_lead_form( $message );
 
 		if ( $show_lead_form ) {
@@ -247,6 +248,7 @@ class SPC_Chat_Controller {
 					'suggested_links'   => $suggested_links,
 					'source_labels'     => $source_labels,
 					'source_snippets'   => $source_snippets,
+					'allowed_link_domains' => $allowed_link_domains,
 					'show_lead_form'    => true,
 					'weak_retrieval'    => $weak_retrieval,
 				)
@@ -291,6 +293,7 @@ class SPC_Chat_Controller {
 					'suggested_links'    => $suggested_links,
 					'source_labels'      => $source_labels,
 					'source_snippets'    => $source_snippets,
+					'allowed_link_domains' => $allowed_link_domains,
 					'show_lead_form'     => $show_lead_form,
 					'weak_retrieval'     => true,
 					'fallback_reason'    => $retrieval_evaluation['reason'],
@@ -342,6 +345,7 @@ class SPC_Chat_Controller {
 				'suggested_links'   => $suggested_links,
 				'source_labels'     => $source_labels,
 				'source_snippets'   => $source_snippets,
+				'allowed_link_domains' => $allowed_link_domains,
 				'show_lead_form'    => $show_lead_form,
 				'weak_retrieval'    => false,
 			)
@@ -464,6 +468,69 @@ class SPC_Chat_Controller {
 		}
 
 		return array_values( $snippets );
+	}
+
+	/**
+	 * Get link domains that are safe for this response because they came from settings or retrieved KB chunks.
+	 *
+	 * @param array $chunks Retrieved chunks.
+	 *
+	 * @return array
+	 */
+	private function get_allowed_link_domains_for_chunks( array $chunks ) {
+		$domains = $this->get_allowed_link_domains_from_settings();
+
+		foreach ( $chunks as $chunk ) {
+			if ( ! empty( $chunk['page_url'] ) ) {
+				$domains[] = $this->get_domain_from_url( $chunk['page_url'] );
+			}
+
+			if ( empty( $chunk['content'] ) ) {
+				continue;
+			}
+
+			if ( preg_match_all( '/https?:\/\/[^\s)]+/i', (string) $chunk['content'], $matches ) ) {
+				foreach ( $matches[0] as $url ) {
+					$domains[] = $this->get_domain_from_url( $url );
+				}
+			}
+		}
+
+		return array_values( array_filter( array_unique( $domains ) ) );
+	}
+
+	/**
+	 * Get configured link allowlist domains.
+	 *
+	 * @return array
+	 */
+	private function get_allowed_link_domains_from_settings() {
+		$raw     = (string) $this->settings->get( 'allowed_link_domains', '' );
+		$lines   = preg_split( '/\r\n|\r|\n/', $raw );
+		$domains = array();
+
+		foreach ( $lines as $line ) {
+			$domain = strtolower( trim( $line ) );
+
+			if ( '' !== $domain ) {
+				$domains[] = $domain;
+			}
+		}
+
+		return $domains;
+	}
+
+	/**
+	 * Extract a lowercase domain from a URL.
+	 *
+	 * @param string $url URL.
+	 *
+	 * @return string
+	 */
+	private function get_domain_from_url( $url ) {
+		$host = wp_parse_url( esc_url_raw( $url ), PHP_URL_HOST );
+
+		return $host ? strtolower( $host ) : '';
 	}
 
 	/**

@@ -190,6 +190,26 @@
 		}
 	}
 
+	function mergeAllowedLinkDomains( domains ) {
+		if ( ! Array.isArray( domains ) ) {
+			return;
+		}
+
+		var existing = Array.isArray( window.SPC_CHATBOT.allowedLinkDomains )
+			? window.SPC_CHATBOT.allowedLinkDomains
+			: [];
+
+		domains.forEach( function ( domain ) {
+			domain = String( domain || '' ).toLowerCase();
+
+			if ( domain && existing.indexOf( domain ) === -1 ) {
+				existing.push( domain );
+			}
+		} );
+
+		window.SPC_CHATBOT.allowedLinkDomains = existing;
+	}
+
 	function setLeadVisibility( visible ) {
 		if ( lead ) {
 			lead.hidden = ! visible;
@@ -274,6 +294,7 @@
 				loadingMessage.remove();
 				conversationId = data.conversation_id || conversationId;
 				window.sessionStorage.setItem( 'spcConversationId', conversationId );
+				mergeAllowedLinkDomains( data.allowed_link_domains || [] );
 				var assistantMessage = appendMessage( data.assistant_message || 'I could not find an answer for that.', 'assistant' );
 				if ( data.show_lead_form ) {
 					assistantMessage.setAttribute( 'data-spc-lead-intro', 'true' );
