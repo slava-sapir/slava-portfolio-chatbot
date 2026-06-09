@@ -83,7 +83,7 @@ class SPC_Plugin {
 		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_public_assets' ) );
 		add_action( 'wp_footer', array( $this, 'render_chat_widget' ) );
 		add_action( 'rest_api_init', array( $this->rest_routes, 'register_routes' ) );
-		add_action( 'spc_cleanup_chat_logs', array( $this->privacy, 'delete_old_chat_logs' ) );
+		add_action( 'spc_cleanup_chat_logs', array( $this->privacy, 'run_cleanup' ) );
 
 		SPC_Privacy::ensure_cleanup_schedule();
 	}
@@ -148,8 +148,30 @@ class SPC_Plugin {
 				'restUrl' => esc_url_raw( rest_url( 'spc/v1/' ) ),
 				'nonce'   => wp_create_nonce( 'wp_rest' ),
 				'enabled' => true,
+				'allowedLinkDomains' => $this->get_allowed_link_domains(),
 			)
 		);
+	}
+
+	/**
+	 * Get sanitized link domains for frontend link allowlisting.
+	 *
+	 * @return array
+	 */
+	private function get_allowed_link_domains() {
+		$raw     = (string) $this->settings->get( 'allowed_link_domains', '' );
+		$lines   = preg_split( '/\r\n|\r|\n/', $raw );
+		$domains = array();
+
+		foreach ( $lines as $line ) {
+			$domain = strtolower( trim( $line ) );
+
+			if ( '' !== $domain ) {
+				$domains[] = $domain;
+			}
+		}
+
+		return array_values( array_unique( $domains ) );
 	}
 
 	/**

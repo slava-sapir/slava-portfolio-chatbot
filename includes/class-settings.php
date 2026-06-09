@@ -35,6 +35,9 @@ class SPC_Settings {
 			'default_language'        => 'en',
 			'system_prompt'           => $this->get_default_system_prompt(),
 			'chat_log_retention_days' => 90,
+			'analytics_retention_days' => 90,
+			'daily_openai_request_cap' => 100,
+			'allowed_link_domains'     => $this->get_default_allowed_link_domains(),
 			'email_notifications'     => '0',
 		);
 	}
@@ -109,6 +112,16 @@ class SPC_Settings {
 
 		$retention_days = isset( $input['chat_log_retention_days'] ) ? absint( $input['chat_log_retention_days'] ) : 90;
 		$settings['chat_log_retention_days'] = max( 1, min( 365, $retention_days ) );
+
+		$analytics_retention_days = isset( $input['analytics_retention_days'] ) ? absint( $input['analytics_retention_days'] ) : 90;
+		$settings['analytics_retention_days'] = max( 1, min( 365, $analytics_retention_days ) );
+
+		$daily_openai_request_cap = isset( $input['daily_openai_request_cap'] ) ? absint( $input['daily_openai_request_cap'] ) : 100;
+		$settings['daily_openai_request_cap'] = max( 1, min( 10000, $daily_openai_request_cap ) );
+
+		$settings['allowed_link_domains'] = $this->sanitize_allowed_link_domains(
+			isset( $input['allowed_link_domains'] ) ? $input['allowed_link_domains'] : ''
+		);
 
 		$settings['email_notifications'] = isset( $input['email_notifications'] ) && '1' === (string) $input['email_notifications'] ? '1' : '0';
 
@@ -192,5 +205,47 @@ class SPC_Settings {
 	 */
 	private function get_default_system_prompt() {
 		return 'You are Slava portfolio assistant. Help visitors understand Slava\'s skills, projects, services, and experience using only approved portfolio knowledge base content. If the retrieved content does not support a factual answer, say you do not have enough confirmed information and suggest contacting Slava directly.';
+	}
+
+	/**
+	 * Get default domains that can be converted into clickable assistant links.
+	 *
+	 * @return string
+	 */
+	private function get_default_allowed_link_domains() {
+		$home_host = wp_parse_url( home_url(), PHP_URL_HOST );
+		$domains   = array( 'github.com' );
+
+		if ( $home_host ) {
+			$domains[] = $home_host;
+		}
+
+		return implode( "\n", array_unique( $domains ) );
+	}
+
+	/**
+	 * Sanitize allowed domains, one per line.
+	 *
+	 * @param mixed $value Raw setting value.
+	 *
+	 * @return string
+	 */
+	private function sanitize_allowed_link_domains( $value ) {
+		$value   = is_string( $value ) ? wp_unslash( $value ) : '';
+		$lines   = preg_split( '/\r\n|\r|\n/', $value );
+		$domains = array();
+
+		foreach ( $lines as $line ) {
+			$domain = strtolower( trim( $line ) );
+			$domain = preg_replace( '#^https?://#', '', $domain );
+			$domain = strtok( $domain, '/' );
+			$domain = preg_replace( '/[^a-z0-9.-]/', '', $domain );
+
+			if ( '' !== $domain ) {
+				$domains[] = $domain;
+			}
+		}
+
+		return implode( "\n", array_values( array_unique( $domains ) ) );
 	}
 }

@@ -27,7 +27,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 		</header>
 
 		<div class="spc-chatbot__privacy">
-			<?php esc_html_e( 'Messages may be stored to help with follow-up and improve this assistant.', 'slava-portfolio-chatbot' ); ?>
+			<?php esc_html_e( 'Messages may be stored for follow-up, assistant improvement, and abuse prevention.', 'slava-portfolio-chatbot' ); ?>
 		</div>
 
 		<div class="spc-chatbot__survey" data-spc-survey hidden>

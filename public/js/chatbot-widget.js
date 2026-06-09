@@ -84,11 +84,15 @@
 			}
 
 			var link = document.createElement( 'a' );
-			link.href = match[1];
-			link.textContent = match[1];
-			link.target = '_blank';
-			link.rel = 'noopener noreferrer';
-			element.appendChild( link );
+			if ( isAllowedLink( match[1] ) ) {
+				link.href = match[1];
+				link.textContent = match[1];
+				link.target = '_blank';
+				link.rel = 'noopener noreferrer';
+				element.appendChild( link );
+			} else {
+				element.appendChild( document.createTextNode( match[1] ) );
+			}
 
 			if ( match[2] ) {
 				element.appendChild( document.createTextNode( match[2] ) );
@@ -136,6 +140,7 @@
 			? 'Sources: ' + sourceLabels.join( ', ' )
 			: 'Sources';
 		links.appendChild( title );
+		var renderedLinks = 0;
 
 		( suggestedLinks || [] ).forEach( function ( item ) {
 			if ( ! item || ! item.url ) {
@@ -147,10 +152,42 @@
 			link.textContent = item.title || item.url;
 			link.target = '_blank';
 			link.rel = 'noopener noreferrer';
+
+			if ( ! isAllowedLink( item.url ) ) {
+				return;
+			}
+
 			links.appendChild( link );
+			renderedLinks += 1;
 		} );
 
+		if ( renderedLinks === 0 ) {
+			links.innerHTML = '';
+			links.hidden = true;
+			return;
+		}
+
 		links.hidden = false;
+	}
+
+	function isAllowedLink( url ) {
+		var allowedDomains = window.SPC_CHATBOT.allowedLinkDomains || [];
+
+		if ( ! Array.isArray( allowedDomains ) || allowedDomains.length === 0 ) {
+			return false;
+		}
+
+		try {
+			var parsed = new URL( url );
+			var host = parsed.hostname.toLowerCase();
+
+			return allowedDomains.some( function ( domain ) {
+				domain = String( domain || '' ).toLowerCase();
+				return host === domain || host.endsWith( '.' + domain );
+			} );
+		} catch ( error ) {
+			return false;
+		}
 	}
 
 	function setLeadVisibility( visible ) {

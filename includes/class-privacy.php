@@ -32,7 +32,7 @@ class SPC_Privacy {
 	 * @return string
 	 */
 	public function get_notice() {
-		return __( 'Messages may be stored to help with follow-up and improve this portfolio assistant.', 'slava-portfolio-chatbot' );
+		return __( 'Messages and lead details may be stored to support follow-up, improve this portfolio assistant, and protect the service from abuse.', 'slava-portfolio-chatbot' );
 	}
 
 	/**
@@ -54,6 +54,37 @@ class SPC_Privacy {
 				$retention_days
 			)
 		);
+	}
+
+	/**
+	 * Delete analytics events older than the configured retention period.
+	 *
+	 * @return int|false Number of rows deleted, or false on error.
+	 */
+	public function delete_old_analytics_events() {
+		global $wpdb;
+
+		$retention_days = absint( $this->settings->get( 'analytics_retention_days', 90 ) );
+		$retention_days = max( 1, min( 365, $retention_days ) );
+		$table          = $wpdb->prefix . 'spc_analytics_events';
+
+		return $wpdb->query(
+			$wpdb->prepare(
+				"DELETE FROM {$table} WHERE created_at < DATE_SUB(%s, INTERVAL %d DAY)",
+				current_time( 'mysql' ),
+				$retention_days
+			)
+		);
+	}
+
+	/**
+	 * Run all daily privacy cleanup tasks.
+	 *
+	 * @return void
+	 */
+	public function run_cleanup() {
+		$this->delete_old_chat_logs();
+		$this->delete_old_analytics_events();
 	}
 
 	/**

@@ -51,7 +51,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 	<label class="spc-chatbot__consent">
 		<input type="checkbox" name="consent_given" value="1" required />
-		<span><?php esc_html_e( 'I agree that my details may be stored so Slava can follow up with me.', 'slava-portfolio-chatbot' ); ?></span>
+		<span><?php esc_html_e( 'I agree that my details and message may be stored so Slava can follow up with me and improve this assistant.', 'slava-portfolio-chatbot' ); ?></span>
 	</label>
 
 	<button type="submit"><?php esc_html_e( 'Send details', 'slava-portfolio-chatbot' ); ?></button>

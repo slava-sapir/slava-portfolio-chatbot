@@ -132,6 +132,18 @@ class SPC_Chat_Controller {
 			);
 		}
 
+		$daily_openai_request_cap = absint( $this->settings->get( 'daily_openai_request_cap', 100 ) );
+
+		if ( ! $this->rate_limiter->is_daily_cap_available( 'openai_chat', $daily_openai_request_cap ) ) {
+			return new WP_REST_Response(
+				array(
+					'message' => __( 'The assistant has reached today\'s usage limit. Please try again tomorrow or contact Slava directly.', 'slava-portfolio-chatbot' ),
+					'code'    => 'daily_openai_cap_reached',
+				),
+				429
+			);
+		}
+
 		$conversation_id = sanitize_text_field( wp_unslash( $request->get_param( 'conversation_id' ) ) );
 		$language        = sanitize_text_field( wp_unslash( $request->get_param( 'language' ) ) );
 		$visitor_type    = sanitize_text_field( wp_unslash( $request->get_param( 'visitor_type' ) ) );

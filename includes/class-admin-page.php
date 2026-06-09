@@ -277,6 +277,55 @@ class SPC_Admin_Page {
 					</tr>
 					<tr>
 						<th scope="row">
+							<label for="spc_analytics_retention_days"><?php esc_html_e( 'Analytics retention', 'slava-portfolio-chatbot' ); ?></label>
+						</th>
+						<td>
+							<input
+								type="number"
+								id="spc_analytics_retention_days"
+								name="spc_settings[analytics_retention_days]"
+								value="<?php echo esc_attr( $settings['analytics_retention_days'] ); ?>"
+								min="1"
+								max="365"
+								class="small-text"
+							/>
+							<?php esc_html_e( 'days', 'slava-portfolio-chatbot' ); ?>
+							<p class="description"><?php esc_html_e( 'Old lightweight analytics events are deleted by the daily cleanup job.', 'slava-portfolio-chatbot' ); ?></p>
+						</td>
+					</tr>
+					<tr>
+						<th scope="row">
+							<label for="spc_daily_openai_request_cap"><?php esc_html_e( 'Daily OpenAI request cap', 'slava-portfolio-chatbot' ); ?></label>
+						</th>
+						<td>
+							<input
+								type="number"
+								id="spc_daily_openai_request_cap"
+								name="spc_settings[daily_openai_request_cap]"
+								value="<?php echo esc_attr( $settings['daily_openai_request_cap'] ); ?>"
+								min="1"
+								max="10000"
+								class="small-text"
+							/>
+							<p class="description"><?php esc_html_e( 'Maximum chat requests that may call OpenAI per day. This protects your API budget on the live site.', 'slava-portfolio-chatbot' ); ?></p>
+						</td>
+					</tr>
+					<tr>
+						<th scope="row">
+							<label for="spc_allowed_link_domains"><?php esc_html_e( 'Allowed assistant link domains', 'slava-portfolio-chatbot' ); ?></label>
+						</th>
+						<td>
+							<textarea
+								id="spc_allowed_link_domains"
+								name="spc_settings[allowed_link_domains]"
+								rows="4"
+								class="regular-text code"
+							><?php echo esc_textarea( $settings['allowed_link_domains'] ); ?></textarea>
+							<p class="description"><?php esc_html_e( 'One domain per line. Assistant URLs are only clickable when their domain is listed here.', 'slava-portfolio-chatbot' ); ?></p>
+						</td>
+					</tr>
+					<tr>
+						<th scope="row">
 							<label for="spc_email_notifications"><?php esc_html_e( 'Lead email notifications', 'slava-portfolio-chatbot' ); ?></label>
 						</th>
 						<td>
