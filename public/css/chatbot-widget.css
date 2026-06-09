@@ -442,9 +442,11 @@
 	}
 
 	.spc-chatbot__panel {
-		right: -4px;
+		position: fixed;
+		right: 12px;
+		left: 12px;
 		bottom: 70px;
-		width: calc(100vw - 24px);
+		width: auto;
 		height: min(620px, calc(100vh - 92px));
 	}
 
