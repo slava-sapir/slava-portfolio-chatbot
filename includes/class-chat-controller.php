@@ -307,7 +307,6 @@ class SPC_Chat_Controller {
 		}
 
 		$assistant_message = $chat_response['data']['message'];
-		$show_lead_form    = $this->should_show_lead_form( $assistant_message );
 
 		$this->logger->log_chat_message(
 			array(
