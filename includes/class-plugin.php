@@ -13,7 +13,9 @@ require_once SPC_PLUGIN_DIR . 'includes/class-admin-page.php';
 require_once SPC_PLUGIN_DIR . 'includes/class-settings.php';
 require_once SPC_PLUGIN_DIR . 'includes/class-rest-routes.php';
 require_once SPC_PLUGIN_DIR . 'includes/class-chat-controller.php';
+require_once SPC_PLUGIN_DIR . 'includes/class-qa-controller.php';
 require_once SPC_PLUGIN_DIR . 'includes/class-lead-controller.php';
+require_once SPC_PLUGIN_DIR . 'includes/class-shortcodes.php';
 require_once SPC_PLUGIN_DIR . 'includes/class-kb-sync.php';
 require_once SPC_PLUGIN_DIR . 'includes/class-openai-client.php';
 require_once SPC_PLUGIN_DIR . 'includes/class-supabase-client.php';
@@ -49,6 +51,13 @@ class SPC_Plugin {
 	private $rest_routes;
 
 	/**
+	 * Shortcode service.
+	 *
+	 * @var SPC_Shortcodes
+	 */
+	private $shortcodes;
+
+	/**
 	 * Privacy and retention service.
 	 *
 	 * @var SPC_Privacy
@@ -62,6 +71,7 @@ class SPC_Plugin {
 		$this->settings    = new SPC_Settings();
 		$this->admin_page  = new SPC_Admin_Page( $this->settings );
 		$this->rest_routes = new SPC_REST_Routes( $this->settings );
+		$this->shortcodes  = new SPC_Shortcodes( $this->settings );
 		$this->privacy     = new SPC_Privacy( $this->settings );
 	}
 
@@ -84,6 +94,7 @@ class SPC_Plugin {
 		add_action( 'wp_footer', array( $this, 'render_chat_widget' ) );
 		add_action( 'rest_api_init', array( $this->rest_routes, 'register_routes' ) );
 		add_action( 'spc_cleanup_chat_logs', array( $this->privacy, 'run_cleanup' ) );
+		add_action( 'init', array( $this->shortcodes, 'register' ) );
 
 		SPC_Privacy::ensure_cleanup_schedule();
 	}

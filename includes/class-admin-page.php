@@ -355,6 +355,13 @@ class SPC_Admin_Page {
 				<?php wp_nonce_field( 'spc_refresh_kb', 'spc_refresh_kb_nonce' ); ?>
 				<?php submit_button( __( 'Refresh Knowledge Base', 'slava-portfolio-chatbot' ), 'secondary', 'submit', false ); ?>
 			</form>
+
+			<hr />
+
+			<h2><?php esc_html_e( 'Embedded Page Q&A', 'slava-portfolio-chatbot' ); ?></h2>
+			<p><?php esc_html_e( 'Place a page-specific AI Q&A block into approved source pages with this shortcode:', 'slava-portfolio-chatbot' ); ?></p>
+			<p><code>[slava_portfolio_qa page_id="123" title="Ask About Slava"]</code></p>
+			<p class="description"><?php esc_html_e( 'Replace 123 with the WordPress page ID. The block uses the same OpenAI, Supabase, RAG, guardrails, rate limits, and privacy settings as the chatbot.', 'slava-portfolio-chatbot' ); ?></p>
 		<?php
 	}
 

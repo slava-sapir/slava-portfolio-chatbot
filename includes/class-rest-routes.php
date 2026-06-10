@@ -37,6 +37,7 @@ class SPC_REST_Routes {
 	public function register_routes() {
 		$chat_controller = new SPC_Chat_Controller( $this->settings );
 		$lead_controller = new SPC_Lead_Controller( $this->settings );
+		$qa_controller   = new SPC_QA_Controller( $this->settings );
 
 		register_rest_route(
 			'spc/v1',
@@ -55,6 +56,16 @@ class SPC_REST_Routes {
 				'methods'             => WP_REST_Server::CREATABLE,
 				'callback'            => array( $lead_controller, 'handle_lead' ),
 				'permission_callback' => array( $lead_controller, 'permissions_check' ),
+			)
+		);
+
+		register_rest_route(
+			'spc/v1',
+			'/qa',
+			array(
+				'methods'             => WP_REST_Server::CREATABLE,
+				'callback'            => array( $qa_controller, 'handle_qa' ),
+				'permission_callback' => array( $qa_controller, 'permissions_check' ),
 			)
 		);
 	}
