@@ -10,16 +10,24 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 ?>
-<section class="spc-qa" data-spc-qa data-page-id="<?php echo esc_attr( $page_id ); ?>">
+<section class="spc-qa" data-spc-qa data-page-id="<?php echo esc_attr( $page_id ); ?>" data-scope="<?php echo esc_attr( $scope ); ?>">
 	<div class="spc-qa__header">
 		<h2><?php echo esc_html( $title ); ?></h2>
 		<p>
 			<?php
-			printf(
-				/* translators: %s: page title */
-				esc_html__( 'Ask focused questions about %s using approved page content.', 'slava-portfolio-chatbot' ),
-				esc_html( $page_title )
-			);
+			if ( 'site' === $scope ) {
+				printf(
+					/* translators: %s: page title */
+					esc_html__( 'Ask questions from %s with answers grounded in the approved website knowledge base.', 'slava-portfolio-chatbot' ),
+					esc_html( $page_title )
+				);
+			} else {
+				printf(
+					/* translators: %s: page title */
+					esc_html__( 'Ask focused questions about %s using approved page content.', 'slava-portfolio-chatbot' ),
+					esc_html( $page_title )
+				);
+			}
 			?>
 		</p>
 	</div>

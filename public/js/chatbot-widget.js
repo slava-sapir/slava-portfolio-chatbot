@@ -62,7 +62,7 @@
 		message.className = 'spc-chatbot__message spc-chatbot__message--' + type;
 
 		if ( type.indexOf( 'assistant' ) === 0 ) {
-			appendTextWithLinks( message, text );
+			appendFormattedText( message, text );
 		} else {
 			message.textContent = text;
 		}
@@ -71,6 +71,37 @@
 		messages.scrollTop = messages.scrollHeight;
 
 		return message;
+	}
+
+	function appendFormattedText( element, text ) {
+		var lines = String( text || '' ).split( /\r?\n/ );
+		var list = null;
+
+		lines.forEach( function ( rawLine ) {
+			var line = rawLine.trim();
+
+			if ( ! line ) {
+				list = null;
+				return;
+			}
+
+			if ( /^(\d+\.|-|\*)\s+/.test( line ) ) {
+				if ( ! list ) {
+					list = document.createElement( 'ul' );
+					element.appendChild( list );
+				}
+
+				var item = document.createElement( 'li' );
+				appendTextWithLinks( item, line.replace( /^(\d+\.|-|\*)\s+/, '' ) );
+				list.appendChild( item );
+				return;
+			}
+
+			list = null;
+			var paragraph = document.createElement( 'p' );
+			appendTextWithLinks( paragraph, line );
+			element.appendChild( paragraph );
+		} );
 	}
 
 	function appendTextWithLinks( element, text ) {

@@ -200,6 +200,24 @@
 	color: #172033;
 }
 
+.spc-chatbot__message p,
+.spc-chatbot__message ul {
+	margin: 0 0 8px;
+}
+
+.spc-chatbot__message p:last-child,
+.spc-chatbot__message ul:last-child {
+	margin-bottom: 0;
+}
+
+.spc-chatbot__message ul {
+	padding-left: 18px;
+}
+
+.spc-chatbot__message li + li {
+	margin-top: 4px;
+}
+
 .spc-chatbot__message--assistant a,
 .spc-chatbot__message--error a {
 	color: #155bc3;
@@ -445,9 +463,19 @@
 		position: fixed;
 		right: 12px;
 		left: 12px;
-		bottom: 70px;
+		top: 16px;
+		bottom: 86px;
 		width: auto;
-		height: min(620px, calc(100vh - 92px));
+		height: auto;
+		max-height: none;
+	}
+
+	.spc-chatbot__header {
+		padding: 14px;
+	}
+
+	.spc-chatbot__messages {
+		padding: 12px;
 	}
 
 	.spc-chatbot__lead-grid {

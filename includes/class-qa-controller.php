@@ -106,6 +106,7 @@ class SPC_QA_Controller {
 
 		$message = sanitize_textarea_field( wp_unslash( $request->get_param( 'message' ) ) );
 		$page_id = absint( $request->get_param( 'page_id' ) );
+		$scope   = 'site' === sanitize_key( wp_unslash( $request->get_param( 'scope' ) ) ) ? 'site' : 'page';
 
 		if ( '' === trim( $message ) ) {
 			return new WP_REST_Response(
@@ -177,7 +178,7 @@ class SPC_QA_Controller {
 			return $this->error_response( $matches, 502 );
 		}
 
-		$chunks = is_array( $matches['data'] ) ? $this->filter_chunks_for_page( $matches['data'], $page_id, $page_url ) : array();
+		$chunks = is_array( $matches['data'] ) ? $this->prepare_chunks_for_scope( $matches['data'], $page_id, $page_url, $scope ) : array();
 		$chunks = array_slice( $chunks, 0, 6 );
 
 		$retrieval_evaluation = $this->guardrails->evaluate_retrieval( $chunks, $message );
@@ -195,6 +196,7 @@ class SPC_QA_Controller {
 					'is_fallback'     => true,
 					'metadata'        => array(
 						'mode'   => 'qa',
+						'scope'  => $scope,
 						'reason' => $retrieval_evaluation['reason'],
 					),
 					'session_hash'    => $session_hash,
@@ -205,7 +207,7 @@ class SPC_QA_Controller {
 				array(
 					'answer'           => $answer,
 					'suggested_links'  => $this->get_suggested_links( $chunks, $page_title, $page_url ),
-					'source_labels'    => array( $page_title ),
+					'source_labels'    => $this->get_source_labels( $chunks, $page_title ),
 					'weak_retrieval'   => true,
 					'fallback_reason'  => $retrieval_evaluation['reason'],
 					'allowed_link_domains' => $this->get_allowed_link_domains_for_chunks( $chunks, $page_url ),
@@ -214,7 +216,7 @@ class SPC_QA_Controller {
 		}
 
 		$chat_response = $this->openai->create_chat_response(
-			$this->build_messages( $message, $chunks, $page_title, $page_url, $language ),
+			$this->build_messages( $message, $chunks, $page_title, $page_url, $language, $scope ),
 			array(
 				'temperature' => 0.2,
 			)
@@ -240,7 +242,7 @@ class SPC_QA_Controller {
 			array(
 				'answer'           => $chat_response['data']['message'],
 				'suggested_links'  => $this->get_suggested_links( $chunks, $page_title, $page_url ),
-				'source_labels'    => array( $page_title ),
+				'source_labels'    => $this->get_source_labels( $chunks, $page_title ),
 				'weak_retrieval'   => false,
 				'allowed_link_domains' => $this->get_allowed_link_domains_for_chunks( $chunks, $page_url ),
 			)
@@ -258,25 +260,28 @@ class SPC_QA_Controller {
 	 *
 	 * @return array
 	 */
-	private function build_messages( $message, array $chunks, $page_title, $page_url, $language ) {
+	private function build_messages( $message, array $chunks, $page_title, $page_url, $language, $scope = 'page' ) {
 		$context_blocks = array();
 
 		foreach ( $chunks as $index => $chunk ) {
 			$context_blocks[] = sprintf(
 				"Source %d\nPage: %s\nURL: %s\nContent: %s",
 				$index + 1,
-				$page_title,
-				$page_url,
+				isset( $chunk['page_title'] ) && $chunk['page_title'] ? $chunk['page_title'] : $page_title,
+				isset( $chunk['page_url'] ) && $chunk['page_url'] ? $chunk['page_url'] : $page_url,
 				isset( $chunk['content'] ) ? $chunk['content'] : ''
 			);
 		}
 
 		$system_prompt = $this->guardrails->get_system_prompt( $this->settings->get( 'system_prompt', '' ) );
+		$scope_rule    = 'site' === $scope
+			? "- You may answer from any retrieved approved website source, but prioritize the current page when it is relevant.\n"
+			: "- Answer only from the retrieved context for the current page.\n";
 
 		return array(
 			array(
 				'role'    => 'system',
-				'content' => $system_prompt . "\n\nEmbedded page Q&A rules:\n- Answer only from the retrieved context for the current page.\n- Keep answers concise and useful for someone reading this page.\n- If the page context does not support the answer, say that the page does not include enough confirmed information.\n- Do not turn general page questions into sales or hiring messages unless the user asks about contacting or hiring Slava.",
+				'content' => $system_prompt . "\n\nEmbedded page Q&A rules:\n" . $scope_rule . "- Keep answers concise and useful for someone reading this page.\n- Use short paragraphs or bullets when helpful.\n- If the retrieved context does not support the answer, say that the approved website content does not include enough confirmed information.\n- Do not turn general page questions into sales or hiring messages unless the user asks about contacting or hiring Slava.",
 			),
 			array(
 				'role'    => 'user',
@@ -312,6 +317,40 @@ class SPC_QA_Controller {
 	}
 
 	/**
+	 * Prepare chunks based on page-only or site-wide scope.
+	 *
+	 * @param array  $chunks   Retrieved chunks.
+	 * @param int    $page_id  WordPress page ID.
+	 * @param string $page_url Page URL.
+	 * @param string $scope    Q&A scope.
+	 *
+	 * @return array
+	 */
+	private function prepare_chunks_for_scope( array $chunks, $page_id, $page_url, $scope ) {
+		$page_chunks = $this->filter_chunks_for_page( $chunks, $page_id, $page_url );
+
+		if ( 'site' !== $scope ) {
+			return $page_chunks;
+		}
+
+		$seen = array();
+		$site_chunks = array();
+
+		foreach ( array_merge( $page_chunks, $chunks ) as $chunk ) {
+			$key = isset( $chunk['chunk_id'] ) ? (string) $chunk['chunk_id'] : md5( wp_json_encode( $chunk ) );
+
+			if ( isset( $seen[ $key ] ) ) {
+				continue;
+			}
+
+			$seen[ $key ] = true;
+			$site_chunks[] = $chunk;
+		}
+
+		return $site_chunks;
+	}
+
+	/**
 	 * Build source links for the response.
 	 *
 	 * @param array  $chunks     Retrieved chunks.
@@ -322,13 +361,24 @@ class SPC_QA_Controller {
 	 */
 	private function get_suggested_links( array $chunks, $page_title, $page_url ) {
 		$links = array(
-			array(
+			$page_url => array(
 				'title' => sanitize_text_field( $page_title ),
 				'url'   => esc_url_raw( $page_url ),
 			),
 		);
 
 		foreach ( $chunks as $chunk ) {
+			if ( ! empty( $chunk['page_url'] ) ) {
+				$url = esc_url_raw( $chunk['page_url'] );
+
+				if ( '' !== $url ) {
+					$links[ $url ] = array(
+						'title' => ! empty( $chunk['page_title'] ) ? sanitize_text_field( $chunk['page_title'] ) : wp_parse_url( $url, PHP_URL_HOST ),
+						'url'   => $url,
+					);
+				}
+			}
+
 			if ( empty( $chunk['content'] ) || ! preg_match_all( '/https?:\/\/[^\s)]+/i', (string) $chunk['content'], $matches ) ) {
 				continue;
 			}
@@ -349,6 +399,26 @@ class SPC_QA_Controller {
 	}
 
 	/**
+	 * Build human-readable source labels.
+	 *
+	 * @param array  $chunks     Retrieved chunks.
+	 * @param string $page_title Current page title.
+	 *
+	 * @return array
+	 */
+	private function get_source_labels( array $chunks, $page_title ) {
+		$labels = array( sanitize_text_field( $page_title ) );
+
+		foreach ( $chunks as $chunk ) {
+			if ( ! empty( $chunk['page_title'] ) ) {
+				$labels[] = sanitize_text_field( $chunk['page_title'] );
+			}
+		}
+
+		return array_values( array_unique( array_filter( $labels ) ) );
+	}
+
+	/**
 	 * Get domains allowed for links in this answer.
 	 *
 	 * @param array  $chunks   Retrieved chunks.
@@ -361,6 +431,10 @@ class SPC_QA_Controller {
 		$domains[] = $this->get_domain_from_url( $page_url );
 
 		foreach ( $chunks as $chunk ) {
+			if ( ! empty( $chunk['page_url'] ) ) {
+				$domains[] = $this->get_domain_from_url( $chunk['page_url'] );
+			}
+
 			if ( empty( $chunk['content'] ) || ! preg_match_all( '/https?:\/\/[^\s)]+/i', (string) $chunk['content'], $matches ) ) {
 				continue;
 			}

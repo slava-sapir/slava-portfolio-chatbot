@@ -54,6 +54,7 @@ class SPC_Shortcodes {
 			array(
 				'page_id' => get_the_ID(),
 				'title'   => __( 'Ask About This Page', 'slava-portfolio-chatbot' ),
+				'scope'   => 'page',
 			),
 			$atts,
 			'slava_portfolio_qa'
@@ -69,6 +70,7 @@ class SPC_Shortcodes {
 		$this->enqueue_assets();
 
 		$title       = sanitize_text_field( $atts['title'] );
+		$scope       = 'site' === sanitize_key( $atts['scope'] ) ? 'site' : 'page';
 		$page_title  = get_the_title( $page );
 		$privacy     = new SPC_Privacy( $this->settings );
 		$template    = SPC_PLUGIN_DIR . 'templates/qa-block.php';

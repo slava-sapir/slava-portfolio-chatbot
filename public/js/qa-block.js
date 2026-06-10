@@ -20,6 +20,7 @@
 		var sources = block.querySelector( '[data-spc-qa-sources]' );
 		var suggestions = block.querySelector( '[data-spc-qa-suggestions]' );
 		var pageId = block.getAttribute( 'data-page-id' ) || '';
+		var scope = block.getAttribute( 'data-scope' ) || 'page';
 		var isSending = false;
 
 		if ( ! form || ! input || ! answer ) {
@@ -62,6 +63,7 @@
 				body: JSON.stringify( {
 					message: text,
 					page_id: pageId,
+					scope: scope,
 					language: window.SPC_QA_BLOCK.defaultLanguage || 'en'
 				} )
 			} )
@@ -103,7 +105,7 @@
 			answer.hidden = false;
 			answer.classList.toggle( 'spc-qa__answer--loading', !! loading );
 			answer.classList.toggle( 'spc-qa__answer--error', !! error );
-			appendTextWithLinks( answer, text );
+			appendFormattedText( answer, text );
 		}
 
 		function setSources( links ) {
@@ -146,6 +148,37 @@
 
 			sources.hidden = false;
 		}
+	}
+
+	function appendFormattedText( element, text ) {
+		var lines = String( text || '' ).split( /\r?\n/ );
+		var list = null;
+
+		lines.forEach( function ( rawLine ) {
+			var line = rawLine.trim();
+
+			if ( ! line ) {
+				list = null;
+				return;
+			}
+
+			if ( /^(\d+\.|-|\*)\s+/.test( line ) ) {
+				if ( ! list ) {
+					list = document.createElement( 'ul' );
+					element.appendChild( list );
+				}
+
+				var item = document.createElement( 'li' );
+				appendTextWithLinks( item, line.replace( /^(\d+\.|-|\*)\s+/, '' ) );
+				list.appendChild( item );
+				return;
+			}
+
+			list = null;
+			var paragraph = document.createElement( 'p' );
+			appendTextWithLinks( paragraph, line );
+			element.appendChild( paragraph );
+		} );
 	}
 
 	function appendTextWithLinks( element, text ) {

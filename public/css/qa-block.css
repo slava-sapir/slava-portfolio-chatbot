@@ -97,6 +97,24 @@
 	text-decoration: underline;
 }
 
+.spc-qa__answer p,
+.spc-qa__answer ul {
+	margin: 0 0 10px;
+}
+
+.spc-qa__answer p:last-child,
+.spc-qa__answer ul:last-child {
+	margin-bottom: 0;
+}
+
+.spc-qa__answer ul {
+	padding-left: 20px;
+}
+
+.spc-qa__answer li + li {
+	margin-top: 5px;
+}
+
 .spc-qa__sources {
 	display: flex;
 	flex-wrap: wrap;

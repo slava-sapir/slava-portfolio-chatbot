@@ -360,8 +360,8 @@ class SPC_Admin_Page {
 
 			<h2><?php esc_html_e( 'Embedded Page Q&A', 'slava-portfolio-chatbot' ); ?></h2>
 			<p><?php esc_html_e( 'Place a page-specific AI Q&A block into approved source pages with this shortcode:', 'slava-portfolio-chatbot' ); ?></p>
-			<p><code>[slava_portfolio_qa page_id="123" title="Ask About Slava"]</code></p>
-			<p class="description"><?php esc_html_e( 'Replace 123 with the WordPress page ID. The block uses the same OpenAI, Supabase, RAG, guardrails, rate limits, and privacy settings as the chatbot.', 'slava-portfolio-chatbot' ); ?></p>
+			<p><code>[slava_portfolio_qa page_id="123" title="Ask About Slava" scope="site"]</code></p>
+			<p class="description"><?php esc_html_e( 'Replace 123 with the WordPress page ID. Use scope="page" for that page only or scope="site" for the whole approved knowledge base with the current page prioritized.', 'slava-portfolio-chatbot' ); ?></p>
 		<?php
 	}
 
