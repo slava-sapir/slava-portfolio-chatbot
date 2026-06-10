@@ -18,6 +18,7 @@
 		var input = block.querySelector( '[data-spc-qa-input]' );
 		var answer = block.querySelector( '[data-spc-qa-answer]' );
 		var sources = block.querySelector( '[data-spc-qa-sources]' );
+		var cta = block.querySelector( '[data-spc-qa-cta]' );
 		var suggestions = block.querySelector( '[data-spc-qa-suggestions]' );
 		var pageId = block.getAttribute( 'data-page-id' ) || '';
 		var scope = block.getAttribute( 'data-scope' ) || 'page';
@@ -50,8 +51,9 @@
 			}
 
 			setSending( true );
-			setAnswer( 'Thinking...', true );
+			setAnswer( '', true );
 			setSources( [] );
+			setCta( null );
 			input.value = '';
 
 			window.fetch( window.SPC_QA_BLOCK.restUrl + 'qa', {
@@ -80,6 +82,7 @@
 					mergeAllowedLinkDomains( data.allowed_link_domains || [] );
 					setAnswer( data.answer || 'I could not find an answer for that.', false );
 					setSources( data.suggested_links || [] );
+					setCta( data.show_contact_cta ? data : null );
 				} )
 				.catch( function ( error ) {
 					setAnswer( error.message || 'Something went wrong. Please try again.', false, true );
@@ -105,7 +108,25 @@
 			answer.hidden = false;
 			answer.classList.toggle( 'spc-qa__answer--loading', !! loading );
 			answer.classList.toggle( 'spc-qa__answer--error', !! error );
+
+			if ( loading ) {
+				answer.appendChild( createTypingIndicator() );
+				return;
+			}
+
 			appendFormattedText( answer, text );
+		}
+
+		function createTypingIndicator() {
+			var indicator = document.createElement( 'span' );
+			indicator.className = 'spc-qa__typing';
+			indicator.setAttribute( 'aria-label', 'Thinking' );
+
+			for ( var i = 0; i < 3; i += 1 ) {
+				indicator.appendChild( document.createElement( 'span' ) );
+			}
+
+			return indicator;
 		}
 
 		function setSources( links ) {
@@ -147,6 +168,26 @@
 			}
 
 			sources.hidden = false;
+		}
+
+		function setCta( data ) {
+			if ( ! cta ) {
+				return;
+			}
+
+			cta.innerHTML = '';
+
+			if ( ! data || ! data.contact_url ) {
+				cta.hidden = true;
+				return;
+			}
+
+			var link = document.createElement( 'a' );
+			link.href = data.contact_url;
+			link.textContent = data.contact_label || 'Contact Slava';
+			link.className = 'spc-qa__cta-link';
+			cta.appendChild( link );
+			cta.hidden = false;
 		}
 	}
 

@@ -154,6 +154,8 @@ class SPC_QA_Controller {
 		$page_title   = get_the_title( $page );
 		$page_url     = get_permalink( $page );
 		$session_hash = $this->rate_limiter->get_session_hash();
+		$show_contact_cta = $this->should_show_contact_cta( $message );
+		$contact_url      = $this->get_contact_url();
 
 		$this->analytics->track_event(
 			'qa_question',
@@ -211,6 +213,9 @@ class SPC_QA_Controller {
 					'weak_retrieval'   => true,
 					'fallback_reason'  => $retrieval_evaluation['reason'],
 					'allowed_link_domains' => $this->get_allowed_link_domains_for_chunks( $chunks, $page_url ),
+					'show_contact_cta'  => $show_contact_cta,
+					'contact_url'       => $contact_url,
+					'contact_label'     => __( 'Contact Slava', 'slava-portfolio-chatbot' ),
 				)
 			);
 		}
@@ -245,6 +250,9 @@ class SPC_QA_Controller {
 				'source_labels'    => $this->get_source_labels( $chunks, $page_title ),
 				'weak_retrieval'   => false,
 				'allowed_link_domains' => $this->get_allowed_link_domains_for_chunks( $chunks, $page_url ),
+				'show_contact_cta'  => $show_contact_cta,
+				'contact_url'       => $contact_url,
+				'contact_label'     => __( 'Contact Slava', 'slava-portfolio-chatbot' ),
 			)
 		);
 	}
@@ -503,6 +511,32 @@ class SPC_QA_Controller {
 			__( 'I do not have enough confirmed information from the %s page to answer that accurately.', 'slava-portfolio-chatbot' ),
 			$page_title
 		);
+	}
+
+	/**
+	 * Detect contact/hiring intent for inline Q&A CTA.
+	 *
+	 * @param string $text Text to inspect.
+	 *
+	 * @return bool
+	 */
+	private function should_show_contact_cta( $text ) {
+		return (bool) preg_match( '/\b(hire|hiring|available|availability|contact|email|quote|proposal|work together|collaborate|start a project|new project|need a website|build a website|website help)\b/i', (string) $text );
+	}
+
+	/**
+	 * Find a reasonable contact page URL.
+	 *
+	 * @return string
+	 */
+	private function get_contact_url() {
+		$page = get_page_by_path( 'contact' );
+
+		if ( $page && 'publish' === $page->post_status ) {
+			return get_permalink( $page );
+		}
+
+		return home_url( '/contact/' );
 	}
 
 	/**

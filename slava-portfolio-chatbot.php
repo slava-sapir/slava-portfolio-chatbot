@@ -3,7 +3,7 @@
  * Plugin Name: Slava Portfolio Chatbot
  * Plugin URI:  https://myportfolioonline.com
  * Description: AI-powered portfolio chatbot scaffold for grounded website Q&A and lead capture.
- * Version:     0.2.1
+ * Version:     0.2.2
  * Author:      Slava
  * Text Domain: slava-portfolio-chatbot
  *
@@ -14,7 +14,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'SPC_VERSION', '0.2.1' );
+define( 'SPC_VERSION', '0.2.2' );
 define( 'SPC_DB_VERSION', '0.3.0' );
 define( 'SPC_PLUGIN_FILE', __FILE__ );
 define( 'SPC_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );

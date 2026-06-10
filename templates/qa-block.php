@@ -12,6 +12,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 ?>
 <section class="spc-qa" data-spc-qa data-page-id="<?php echo esc_attr( $page_id ); ?>" data-scope="<?php echo esc_attr( $scope ); ?>">
 	<div class="spc-qa__header">
+		<div class="spc-qa__eyebrow"><?php esc_html_e( 'AI Q&A', 'slava-portfolio-chatbot' ); ?></div>
 		<h2><?php echo esc_html( $title ); ?></h2>
 		<p>
 			<?php
@@ -50,6 +51,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 	<div class="spc-qa__answer" data-spc-qa-answer aria-live="polite" hidden></div>
 	<div class="spc-qa__sources" data-spc-qa-sources hidden></div>
+	<div class="spc-qa__cta" data-spc-qa-cta hidden></div>
 
 	<form class="spc-qa__form" data-spc-qa-form>
 		<label class="screen-reader-text" for="spc-qa-question-<?php echo esc_attr( $page_id ); ?>">
